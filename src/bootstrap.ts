@@ -133,7 +133,8 @@ app.listen(config.port, () => {
   const jioSaavnProcess = spawn('npx', ['tsx', '--tsconfig', 'tsconfig.json', 'run.ts'], {
     cwd: apiPath,
     env: { ...process.env, PORT: '3001' },
-    stdio: 'pipe'
+    stdio: 'pipe',
+    shell: true
   });
 
   jioSaavnProcess.stdout.on('data', (data) => {
