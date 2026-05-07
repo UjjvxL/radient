@@ -193,7 +193,7 @@ const SpotifyImport = {
   async pollJob(jobId) {
     let interval = setInterval(async () => {
       try {
-        const res = await fetch(\`/api/spotify/import/\${jobId}\`);
+        const res = await fetch(`/api/spotify/import/${jobId}`);
         if (!res.ok) return;
         const job = await res.json();
 
@@ -215,23 +215,23 @@ const SpotifyImport = {
 
         const processed = job.matched_tracks + job.failed_tracks;
         const total = job.total_tracks || 1;
-        fillEl.style.width = \`\${(processed / total) * 100}%\`;
+        fillEl.style.width = `${(processed / total) * 100}%`;
 
-        matchedEl.textContent = \`\${job.matched_tracks} matched\`;
-        failedEl.textContent = \`\${job.failed_tracks} failed\`;
-        totalEl.textContent = \`\${job.total_tracks} total\`;
+        matchedEl.textContent = `${job.matched_tracks} matched`;
+        failedEl.textContent = `${job.failed_tracks} failed`;
+        totalEl.textContent = `${job.total_tracks} total`;
 
         if (job.tracks && job.tracks.length > 0) {
-          tracksEl.innerHTML = job.tracks.slice(-5).map(t => \`
+          tracksEl.innerHTML = job.tracks.slice(-5).map(t => `
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span class="truncate" style="flex:1; padding-right:10px; \${t.status === 'failed' ? 'text-decoration:line-through; opacity:0.5;' : ''}">
-                \${t.title} - \${JSON.parse(t.artists || '[]').map(a=>a.name||a).join(', ')}
+              <span class="truncate" style="flex:1; padding-right:10px; ${t.status === 'failed' ? 'text-decoration:line-through; opacity:0.5;' : ''}">
+                ${t.title} - ${JSON.parse(t.artists || '[]').map(a=>a.name||a).join(', ')}
               </span>
-              <span style="color: \${t.status === 'matched' ? '#1DB954' : t.status === 'failed' ? 'var(--error)' : 'var(--text-secondary)'}">
-                \${t.status}
+              <span style="color: ${t.status === 'matched' ? '#1DB954' : t.status === 'failed' ? 'var(--error)' : 'var(--text-secondary)'}">
+                ${t.status}
               </span>
             </div>
-          \`).join('');
+          `).join('');
         }
 
         if (job.status === 'complete' || job.status === 'failed') {
