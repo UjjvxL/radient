@@ -7,7 +7,8 @@
     "start": "npx tsx src/bootstrap.ts",
     "dev": "node server.js",
     "dev:v2": "npx tsx src/bootstrap.ts",
-    "start:v2": "npx tsx src/bootstrap.ts"
+    "start:v2": "npx tsx src/bootstrap.ts",
+    "postinstall": "cd jiosaavn-api-local && npm install"
   },
   "dependencies": {
     "better-sqlite3": "^12.9.0",
