@@ -111,6 +111,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+import { spawn } from 'child_process';
+
 // ─── Start ───
 app.listen(config.port, () => {
   console.log(`
@@ -125,6 +127,24 @@ app.listen(config.port, () => {
   ║                                          ║
   ╚══════════════════════════════════════════╝
   `);
+
+  // Start JioSaavn local API
+  const apiPath = path.join(__dirname, '..', 'jiosaavn-api-local');
+  const jioSaavnProcess = spawn('npx', ['tsx', '--tsconfig', 'tsconfig.json', 'run.ts'], {
+    cwd: apiPath,
+    env: { ...process.env, PORT: '3001' },
+    stdio: 'pipe'
+  });
+
+  jioSaavnProcess.stdout.on('data', (data) => {
+    console.log(`[JioSaavn API] ${data.toString().trim()}`);
+  });
+  jioSaavnProcess.stderr.on('data', (data) => {
+    console.error(`[JioSaavn API Error] ${data.toString().trim()}`);
+  });
+  jioSaavnProcess.on('close', (code) => {
+    console.log(`[JioSaavn API] exited with code ${code}`);
+  });
 
   // Start sync scheduler after server is ready
   startSyncScheduler();

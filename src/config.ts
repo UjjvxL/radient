@@ -3,7 +3,7 @@ dotenv.config();
 
 export const config = {
   port: parseInt(process.env.PORT || '3000'),
-  jiosaavnApi: process.env.JIOSAAVN_API_URL || 'http://localhost:3001',
+  jiosaavnApi: 'http://localhost:3001',
 
   spotify: {
     clientId: process.env.SPOTIFY_CLIENT_ID || '',
