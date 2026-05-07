@@ -1,0 +1,37 @@
+{
+  "name": "radient",
+  "version": "1.0.0",
+  "description": "Radient — Music Without Limits. A premium, ad-free music streaming PWA.",
+  "main": "server.js",
+  "scripts": {
+    "start": "npx tsx src/bootstrap.ts",
+    "dev": "node server.js",
+    "dev:v2": "npx tsx src/bootstrap.ts",
+    "start:v2": "npx tsx src/bootstrap.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "bullmq": "^5.76.6",
+    "cheerio": "^1.0.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0",
+    "ioredis": "^5.10.1",
+    "youtube-sr": "^4.3.12"
+  },
+  "keywords": [
+    "music",
+    "streaming",
+    "pwa",
+    "radient"
+  ],
+  "author": "Ujjval",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}

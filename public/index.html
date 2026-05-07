@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Radient — Music Without Limits</title>
+  <meta name="description" content="Radient is a premium, ad-free music streaming app with background playback, unlimited playlists, and Spotify import.">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Radient">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icon-512.png">
+  <link rel="apple-touch-icon" href="/icon-512.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+  <div id="app">
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🎵</div>
+        <h1>Radient</h1>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" data-page="home" class="nav-link active">
+          <span class="material-symbols-rounded">home</span>
+          Home
+        </a>
+        <a href="#" data-page="search" class="nav-link">
+          <span class="material-symbols-rounded">search</span>
+          Search
+        </a>
+        <a href="#" data-page="library" class="nav-link">
+          <span class="material-symbols-rounded">library_music</span>
+          Your Library
+        </a>
+      </nav>
+
+      <div class="sidebar-actions">
+        <button id="btn-create-playlist" class="btn-action">
+          <span class="material-symbols-rounded">add_box</span>
+          Create Playlist
+        </button>
+        <button id="btn-import-spotify" class="btn-action">
+          <span class="material-symbols-rounded">download</span>
+          Import Playlist
+        </button>
+      </div>
+
+      <div id="sidebar-playlists" class="sidebar-playlists">
+        <!-- Populated by JS -->
+      </div>
+    </aside>
+
+    <!-- ═══ SIDEBAR OVERLAY (mobile) ═══ -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main id="main-content">
+      <header id="top-bar">
+        <button id="btn-menu" class="btn-icon mobile-only" aria-label="Menu">
+          <span class="material-symbols-rounded">menu</span>
+        </button>
+        <div class="nav-arrows">
+          <button id="btn-back" class="btn-icon" aria-label="Go back">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <button id="btn-forward" class="btn-icon" aria-label="Go forward">
+            <span class="material-symbols-rounded">arrow_forward</span>
+          </button>
+        </div>
+      </header>
+
+      <div id="page-content">
+        <!-- Dynamic content rendered by UI.js -->
+      </div>
+    </main>
+
+    <!-- ═══ PLAYER BAR ═══ -->
+    <div id="player-bar">
+      <!-- Track Info (Left) -->
+      <div class="player-track-info">
+        <img id="player-art" src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%231a1a1a%22 width=%221%22 height=%221%22/></svg>" alt="Album art">
+        <div class="player-track-details">
+          <span id="player-title">Not Playing</span>
+          <span id="player-artist">Search for music to start</span>
+        </div>
+        <button id="btn-like" class="btn-icon" aria-label="Like">
+          <span class="material-symbols-rounded">favorite</span>
+        </button>
+      </div>
+
+      <!-- Controls (Center) -->
+      <div class="player-controls">
+        <div class="player-buttons">
+          <button id="btn-shuffle" class="btn-icon" aria-label="Shuffle">
+            <span class="material-symbols-rounded">shuffle</span>
+          </button>
+          <button id="btn-prev" class="btn-icon" aria-label="Previous">
+            <span class="material-symbols-rounded">skip_previous</span>
+          </button>
+          <button id="btn-play" class="btn-icon btn-play-main" aria-label="Play">
+            <span class="material-symbols-rounded">play_arrow</span>
+          </button>
+          <button id="btn-next" class="btn-icon" aria-label="Next">
+            <span class="material-symbols-rounded">skip_next</span>
+          </button>
+          <button id="btn-repeat" class="btn-icon" aria-label="Repeat">
+            <span class="material-symbols-rounded">repeat</span>
+          </button>
+        </div>
+        <div class="player-progress">
+          <span id="player-current-time">0:00</span>
+          <input type="range" id="player-progress-bar" class="styled" min="0" max="100" value="0" aria-label="Progress">
+          <span id="player-duration">0:00</span>
+        </div>
+      </div>
+
+      <!-- Extra (Right) -->
+      <div class="player-extra">
+        <button id="btn-queue" class="btn-icon" aria-label="Queue">
+          <span class="material-symbols-rounded">queue_music</span>
+        </button>
+        <div class="volume-control">
+          <button id="btn-volume" class="btn-icon" aria-label="Volume">
+            <span class="material-symbols-rounded">volume_up</span>
+          </button>
+          <input type="range" id="player-volume" class="styled" min="0" max="100" value="80" aria-label="Volume">
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ BOTTOM NAV (mobile) ═══ -->
+    <nav id="bottom-nav">
+      <a href="#" data-page="home" class="bottom-nav-link active">
+        <span class="material-symbols-rounded">home</span>
+        <span>Home</span>
+      </a>
+      <a href="#" data-page="search" class="bottom-nav-link">
+        <span class="material-symbols-rounded">search</span>
+        <span>Search</span>
+      </a>
+      <a href="#" data-page="library" class="bottom-nav-link">
+        <span class="material-symbols-rounded">library_music</span>
+        <span>Library</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- ═══ FULL SCREEN PLAYER (mobile) ═══ -->
+  <div id="full-player" class="full-player">
+    <div class="full-player-header">
+      <button id="btn-close-full-player" class="btn-icon">
+        <span class="material-symbols-rounded">expand_more</span>
+      </button>
+      <div class="full-player-title">Now Playing</div>
+      <button class="btn-icon" id="btn-full-queue">
+        <span class="material-symbols-rounded">queue_music</span>
+      </button>
+    </div>
+    
+    <div class="full-player-art-container">
+      <img id="full-player-art" src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%231a1a1a%22 width=%221%22 height=%221%22/></svg>" alt="Album art">
+    </div>
+
+    <div class="full-player-info">
+      <div class="full-player-text">
+        <h2 id="full-player-title" class="truncate">Not Playing</h2>
+        <p id="full-player-artist" class="truncate">Search for music to start</p>
+      </div>
+      <button id="btn-full-like" class="btn-icon btn-like">
+        <span class="material-symbols-rounded">favorite</span>
+      </button>
+    </div>
+
+    <div class="full-player-progress">
+      <input type="range" id="full-player-progress-bar" class="styled" min="0" max="100" value="0">
+      <div class="full-player-time">
+        <span id="full-player-current-time">0:00</span>
+        <span id="full-player-duration">0:00</span>
+      </div>
+    </div>
+
+    <div class="full-player-controls">
+      <button id="btn-full-shuffle" class="btn-icon"><span class="material-symbols-rounded">shuffle</span></button>
+      <button id="btn-full-prev" class="btn-icon"><span class="material-symbols-rounded">skip_previous</span></button>
+      <button id="btn-full-play" class="btn-icon btn-play-main"><span class="material-symbols-rounded">play_arrow</span></button>
+      <button id="btn-full-next" class="btn-icon"><span class="material-symbols-rounded">skip_next</span></button>
+      <button id="btn-full-repeat" class="btn-icon"><span class="material-symbols-rounded">repeat</span></button>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL OVERLAY ═══ -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div id="modal-content" class="modal-content"></div>
+  </div>
+
+  <!-- ═══ CONTEXT MENU ═══ -->
+  <div id="context-menu" class="context-menu"></div>
+
+  <!-- ═══ TOAST NOTIFICATIONS ═══ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ═══ AUDIO ELEMENT ═══ -->
+  <audio id="audio-player" preload="auto"></audio>
+
+  <!-- ═══ SCRIPTS ═══ -->
+  <script src="/js/db.js"></script>
+  <script src="/js/player.js"></script>
+  <script src="/js/search.js"></script>
+  <script src="/js/playlists.js"></script>
+  <script src="/js/spotify-import.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/app.js"></script>
+
+</body>
+</html>
