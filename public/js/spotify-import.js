@@ -2,7 +2,7 @@
    Radient — Spotify Playlist Import Engine v2
    ═══════════════════════════════════════════════ */
 
-const SpotifyImport = {
+window.SpotifyImport = {
   init() {
     document.getElementById('btn-import-spotify').addEventListener('click', () => this.showImportModal());
     
