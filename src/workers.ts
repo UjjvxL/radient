@@ -11,7 +11,18 @@ import { matchOnYouTube } from './matching/youtube';
 import { matchQueue, youtubeQueue } from './queues';
 import crypto from 'crypto';
 
-const connection = { host: config.redis.host, port: config.redis.port };
+import IORedis from 'ioredis';
+
+const connectionOptions = config.redis.url 
+  ? new IORedis(config.redis.url, { maxRetriesPerRequest: null })
+  : new IORedis({
+      host: config.redis.host,
+      port: config.redis.port,
+      password: config.redis.password || undefined,
+      maxRetriesPerRequest: null
+    });
+
+const connection = connectionOptions;
 
 // ═══════════════════════════════════════
 // IMPORT WORKER — fetches Spotify tracks, caches metadata, creates playlist

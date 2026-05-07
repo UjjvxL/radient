@@ -1,7 +1,18 @@
 import { Queue } from 'bullmq';
 import { config } from '../config';
 
-const connection = { host: config.redis.host, port: config.redis.port };
+import IORedis from 'ioredis';
+
+const connectionOptions = config.redis.url 
+  ? new IORedis(config.redis.url, { maxRetriesPerRequest: null })
+  : new IORedis({
+      host: config.redis.host,
+      port: config.redis.port,
+      password: config.redis.password || undefined,
+      maxRetriesPerRequest: null
+    });
+
+const connection = connectionOptions;
 
 export const importQueue = new Queue('radient-import', {
   connection,

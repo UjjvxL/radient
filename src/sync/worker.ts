@@ -9,7 +9,18 @@ import { getValidSpotifyToken } from '../auth/spotify-oauth';
 import { matchQueue, syncQueue } from '../queues';
 import crypto from 'crypto';
 
-const connection = { host: config.redis.host, port: config.redis.port };
+import IORedis from 'ioredis';
+
+const connectionOptions = config.redis.url 
+  ? new IORedis(config.redis.url, { maxRetriesPerRequest: null })
+  : new IORedis({
+      host: config.redis.host,
+      port: config.redis.port,
+      password: config.redis.password || undefined,
+      maxRetriesPerRequest: null
+    });
+
+const connection = connectionOptions;
 
 // ─── Sync Worker ───
 export const syncWorker = new Worker('radient-sync', async (job: Job) => {
