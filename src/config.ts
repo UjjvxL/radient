@@ -6,8 +6,8 @@ export const config = {
   jiosaavnApi: 'http://localhost:3001',
 
   spotify: {
-    clientId: process.env.SPOTIFY_CLIENT_ID || '',
-    redirectUri: process.env.SPOTIFY_REDIRECT_URI || 'http://localhost:3000/auth/spotify/callback',
+    clientId: process.env.SPOTIFY_CLIENT_ID || 'a2a0f8d7cb0e4d879a3953e81654f5d0',
+    redirectUri: process.env.SPOTIFY_REDIRECT_URI || 'https://radient-production.up.railway.app/auth/spotify/callback',
     scopes: ['playlist-read-private', 'playlist-read-collaborative', 'user-library-read'],
   },
 
@@ -19,7 +19,7 @@ export const config = {
   },
 
   encryption: {
-    key: process.env.TOKEN_ENCRYPTION_KEY || '',
+    key: process.env.TOKEN_ENCRYPTION_KEY || 'aaada91681d5186866369a9f097e0c415962ae819495cbca98bd73812e9699e8',
   },
 
   sync: {
