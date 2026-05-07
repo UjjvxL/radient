@@ -243,7 +243,20 @@ const Playlists = {
     const container = document.getElementById('sidebar-playlists');
     const playlists = await RadientDB.getPlaylists();
 
-    if (playlists.length === 0) {
+    // Also fetch server-side imported playlists
+    let importedPlaylists = [];
+    try {
+      const res = await fetch('/api/imported-playlists');
+      if (res.ok) {
+        const data = await res.json();
+        importedPlaylists = (data.playlists || []).filter(p => p.matched_count > 0);
+      }
+    } catch {}
+
+    const hasLocal = playlists.length > 0;
+    const hasImported = importedPlaylists.length > 0;
+
+    if (!hasLocal && !hasImported) {
       container.innerHTML = `
         <p style="padding: 16px; font-size: 12px; color: var(--text-tertiary);">
           No playlists yet. Create one!
@@ -252,16 +265,35 @@ const Playlists = {
       return;
     }
 
-    container.innerHTML = `
-      <div class="sidebar-section-title">Your Playlists</div>
-      ${playlists.map(pl => `
+    let html = '';
+
+    // Server-side imported playlists
+    if (hasImported) {
+      html += '<div class="sidebar-section-title">Imported Playlists</div>';
+      html += importedPlaylists.map(pl => `
+        <div class="playlist-link ${UI.currentPage === 'imported-playlist' && UI.currentData?.id === pl.id ? 'active' : ''}"
+             onclick="SpotifyImport.viewImportedPlaylist('${pl.id}', '${pl.name.replace(/'/g, "\\\\'")}')"
+             data-playlist-id="${pl.id}">
+          <span class="material-symbols-rounded" style="color: #1DB954;">cloud_done</span>
+          ${pl.name}
+          <span style="font-size: 10px; color: var(--text-tertiary); margin-left: auto;">${pl.matched_count}</span>
+        </div>
+      `).join('');
+    }
+
+    // Local playlists
+    if (hasLocal) {
+      html += '<div class="sidebar-section-title">Your Playlists</div>';
+      html += playlists.map(pl => `
         <div class="playlist-link ${UI.currentPage === 'playlist' && UI.currentData?.id === pl.id ? 'active' : ''}"
              onclick="UI.navigate('playlist', { id: '${pl.id}' })"
              data-playlist-id="${pl.id}">
           <span class="material-symbols-rounded">queue_music</span>
           ${pl.name}
         </div>
-      `).join('')}
-    `;
+      `).join('');
+    }
+
+    container.innerHTML = html;
   }
 };

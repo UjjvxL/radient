@@ -148,3 +148,20 @@ CREATE TABLE IF NOT EXISTS sync_state (
   error TEXT,
   consecutive_failures INTEGER NOT NULL DEFAULT 0
 );
+
+-- ═══════════════════════════════════════
+-- Imported Playlist Tracks (direct import, no Redis needed)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS imported_playlist_tracks (
+  playlist_id TEXT NOT NULL REFERENCES playlists_v2(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL DEFAULT 0,
+  jiosaavn_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  artists TEXT NOT NULL,          -- JSON array
+  album TEXT,
+  album_art TEXT,
+  duration INTEGER DEFAULT 0,    -- seconds
+  download_url TEXT,
+  added_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  PRIMARY KEY (playlist_id, jiosaavn_id)
+);

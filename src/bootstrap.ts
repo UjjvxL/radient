@@ -12,7 +12,7 @@ import path from 'path';
 import { config } from './config';
 
 // Initialize DB (creates schema on first run)
-import './db';
+import db from './db';
 
 // Import routers
 import spotifyAuthRouter from './auth/spotify-oauth';
@@ -104,7 +104,50 @@ app.get('/api/songs/:id/suggestions', async (req, res) => {
 // ─── NEW: Spotify Auth, Import & Sync routes ───
 app.use('/auth/spotify', spotifyAuthRouter);
 app.use('/api/spotify', importRouter);
+app.use('/api/import', importRouter);
 app.use('/api/spotify/sync', syncRouter);
+
+// ─── Imported Playlist Tracks API ───
+app.get('/api/imported-playlists/:playlistId/tracks', (req, res) => {
+  try {
+    const tracks = db.prepare(
+      'SELECT * FROM imported_playlist_tracks WHERE playlist_id = ? ORDER BY position'
+    ).all(req.params.playlistId) as any[];
+    
+    // Transform to frontend-compatible format
+    const formatted = tracks.map((t: any) => {
+      let artistsList: any[] = [];
+      try { artistsList = JSON.parse(t.artists); } catch { artistsList = [{ name: t.artists }]; }
+      
+      return {
+        id: t.jiosaavn_id,
+        name: t.title,
+        artists: { primary: artistsList },
+        album: { name: t.album || '' },
+        image: t.album_art ? [{ url: t.album_art }] : [],
+        duration: t.duration || 0,
+        downloadUrl: t.download_url ? [{ quality: '320kbps', url: t.download_url }] : [],
+      };
+    });
+    
+    res.json({ data: formatted });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Imported Playlists list API ───
+app.get('/api/imported-playlists', (req, res) => {
+  try {
+    const playlists = db.prepare(
+      `SELECT p.*, (SELECT COUNT(*) FROM imported_playlist_tracks ipt WHERE ipt.playlist_id = p.id) as matched_count
+       FROM playlists_v2 p WHERE p.user_id = 'usr_default' ORDER BY p.created_at DESC`
+    ).all() as any[];
+    res.json({ playlists });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ─── SPA fallback ───
 app.get('*', (req, res) => {
