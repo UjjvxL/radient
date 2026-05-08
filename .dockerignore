@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+jiosaavn-api-local/node_modules
+data/
+dist/
+.env
+.DS_Store
+*.md
+*.bat

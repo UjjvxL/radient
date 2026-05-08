@@ -18,10 +18,6 @@ import db from './db';
 import spotifyAuthRouter from './auth/spotify-oauth';
 import importRouter from './import/controller';
 import syncRouter from './sync/controller';
-import { startSyncScheduler } from './sync/worker';
-
-// Start workers (they run in-process)
-import './workers';
 
 // ─── Build Express app ───
 const app = express();
@@ -166,7 +162,6 @@ app.listen(config.port, () => {
   ║   App:      http://localhost:${config.port}        ║
   ║   JioSaavn: ${JIOSAAVN_API}   ║
   ║   Spotify:  ${config.spotify.clientId ? '✓ Configured' : '✗ Not configured'}              ║
-  ║   Redis:    ${config.redis.host}:${config.redis.port}              ║
   ║                                          ║
   ╚══════════════════════════════════════════╝
   `);
@@ -190,6 +185,4 @@ app.listen(config.port, () => {
     console.log(`[JioSaavn API] exited with code ${code}`);
   });
 
-  // Start sync scheduler after server is ready
-  startSyncScheduler();
 });
