@@ -21,6 +21,9 @@ const connectionOptions = config.redis.url
     });
 
 const connection = connectionOptions;
+// #region agent log
+fetch('http://127.0.0.1:7885/ingest/5d3b2723-a535-4ccc-ab6a-c8f61aeb268b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'08e7ba'},body:JSON.stringify({sessionId:'08e7ba',runId:'baseline',hypothesisId:'H2',location:'src/sync/worker.ts:24',message:'Sync worker module initialized',data:{redisUrlConfigured:!!config.redis.url,redisHost:config.redis.host,redisPort:config.redis.port},timestamp:Date.now()})}).catch(()=>{});
+// #endregion
 
 // ─── Sync Worker ───
 export const syncWorker = new Worker('radient-sync', async (job: Job) => {
@@ -158,6 +161,9 @@ let schedulerInterval: NodeJS.Timeout | null = null;
 
 export function startSyncScheduler() {
   const intervalMs = config.sync.intervalMinutes * 60 * 1000;
+  // #region agent log
+  fetch('http://127.0.0.1:7885/ingest/5d3b2723-a535-4ccc-ab6a-c8f61aeb268b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'08e7ba'},body:JSON.stringify({sessionId:'08e7ba',runId:'baseline',hypothesisId:'H3',location:'src/sync/worker.ts:162',message:'Sync scheduler started',data:{intervalMinutes:config.sync.intervalMinutes},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
 
   schedulerInterval = setInterval(async () => {
     try {

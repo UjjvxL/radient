@@ -183,6 +183,11 @@ const Player = {
   getBestStreamUrl(track) {
     if (!track) return null;
 
+    // Check if we have a YouTube Video ID attached
+    if (track.youtube_video_id) {
+      return `/api/stream/youtube/${track.youtube_video_id}`;
+    }
+
     // downloadUrl is usually an array of { quality, url }
     const urls = track.downloadUrl || track.download_url || [];
 

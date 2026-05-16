@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS imported_playlist_tracks (
   album_art TEXT,
   duration INTEGER DEFAULT 0,    -- seconds
   download_url TEXT,
+  youtube_video_id TEXT,
   added_at INTEGER NOT NULL DEFAULT (unixepoch()),
   PRIMARY KEY (playlist_id, jiosaavn_id)
 );

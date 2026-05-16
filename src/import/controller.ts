@@ -8,8 +8,12 @@ import { getValidSpotifyToken } from '../auth/spotify-oauth';
 import { config } from '../config';
 import db from '../db';
 import crypto from 'crypto';
+import multer from 'multer';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { matchOnYouTube } from '../matching/youtube';
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ─── GET /api/spotify/playlists — list user's Spotify playlists ───
 router.get('/playlists', async (req: Request, res: Response) => {
@@ -77,19 +81,65 @@ router.post('/import', async (req: Request, res: Response) => {
   }
 });
 
-// ─── POST /api/import/screenshot — import from screenshot via text extraction ───
-router.post('/screenshot', async (req: Request, res: Response) => {
+// ─── POST /api/import/screenshot — import from text OR screenshot ───
+router.post('/screenshot', upload.single('image'), async (req: Request, res: Response) => {
   try {
-    const { tracks, playlistName } = req.body as {
-      tracks: Array<{ title: string; artists: string[] }>;
-      playlistName?: string;
-    };
+    let tracks: Array<{ title: string; artists: string[] }> = [];
+    const playlistName = req.body.playlistName || 'Imported Playlist';
 
-    if (!tracks?.length) {
-      return res.status(400).json({ error: 'No tracks provided' });
+    if (req.file) {
+      // Handle Image OCR with Gemini
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'Gemini API Key is missing. Screenshot OCR is unavailable.' });
+      }
+
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      
+      const imagePart = {
+        inlineData: {
+          data: req.file.buffer.toString('base64'),
+          mimeType: req.file.mimetype
+        }
+      };
+
+      const prompt = `
+        This is a screenshot of a music playlist. Extract the songs from it.
+        Return ONLY a raw JSON array of objects, with no markdown formatting or extra text.
+        Each object should have "title" (string) and "artists" (array of strings).
+        Example:
+        [
+          {"title": "Blinding Lights", "artists": ["The Weeknd"]},
+          {"title": "Shape of You", "artists": ["Ed Sheeran"]}
+        ]
+      `;
+
+      const result = await model.generateContent([prompt, imagePart]);
+      const responseText = result.response.text();
+      
+      try {
+        // Clean up markdown code blocks if the model ignored the instructions
+        let cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+        tracks = JSON.parse(cleanJson);
+      } catch (err) {
+        console.error('Failed to parse Gemini response:', responseText);
+        return res.status(500).json({ error: 'Failed to extract songs from the image.' });
+      }
+
+    } else if (req.body.tracks) {
+      // Handle text input (from the old UI logic)
+      let rawTracks = req.body.tracks;
+      if (typeof rawTracks === 'string') {
+        try { rawTracks = JSON.parse(rawTracks); } catch { }
+      }
+      tracks = rawTracks;
     }
 
-    const result = await importTracksFromList(tracks, playlistName || 'Imported Playlist');
+    if (!tracks?.length) {
+      return res.status(400).json({ error: 'No tracks found in the input' });
+    }
+
+    const result = await importTracksFromList(tracks, playlistName);
     res.json({ success: true, ...result });
   } catch (err: any) {
     console.error('[Screenshot Import] Error:', err.message);
@@ -215,8 +265,8 @@ async function matchTracksInBackground(
         else if (cName.includes(tName) || tName.includes(cName)) score += 0.35;
         else {
           // Partial word overlap
-          const cWords = new Set(cName.split(/\s+/));
-          const tWords = tName.split(/\s+/);
+          const cWords = new Set(cName.split(/\\s+/));
+          const tWords = tName.split(/\\s+/);
           const overlap = tWords.filter(w => cWords.has(w)).length;
           score += (overlap / Math.max(tWords.length, 1)) * 0.4;
         }
@@ -242,13 +292,23 @@ async function matchTracksInBackground(
       }
 
       if (bestMatch && bestScore >= 0.30) {
-        // Store in the radient playlist's local IndexedDB-compatible format
-        // We store the JioSaavn track data in a simple table for the frontend to use
         const trackId = bestMatch.id;
+        
+        // ---- NEW: Resolve YouTube Video ID for primary streaming ----
+        let youtubeVideoId = '';
+        try {
+          const ytMatch = await matchOnYouTube(bestMatch.name || t.title, bestMatch.artists?.primary?.map((a: any) => a.name) || t.artists, (bestMatch.duration || t.durationMs || 0) * 1000);
+          if (ytMatch && ytMatch.confidence > 0.35) {
+            youtubeVideoId = ytMatch.videoId;
+          }
+        } catch (ytErr) {
+          console.error('[YouTube Match Error]', ytErr);
+        }
+
         const storeStmt = db.prepare(
           `INSERT OR IGNORE INTO imported_playlist_tracks
-           (playlist_id, position, jiosaavn_id, title, artists, album, album_art, duration, download_url)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           (playlist_id, position, jiosaavn_id, title, artists, album, album_art, duration, download_url, youtube_video_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         );
         
         const downloadUrls = bestMatch.downloadUrl || [];
@@ -264,7 +324,8 @@ async function matchTracksInBackground(
           bestMatch.album?.name || t.album || '',
           bestMatch.image?.[bestMatch.image.length - 1]?.url || t.albumArt || '',
           bestMatch.duration || Math.round((t.durationMs || 0) / 1000),
-          bestDownload?.url || ''
+          bestDownload?.url || '',
+          youtubeVideoId
         );
         matched++;
       } else {

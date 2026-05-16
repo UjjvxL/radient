@@ -23,6 +23,9 @@ const connectionOptions = config.redis.url
     });
 
 const connection = connectionOptions;
+// #region agent log
+fetch('http://127.0.0.1:7885/ingest/5d3b2723-a535-4ccc-ab6a-c8f61aeb268b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'08e7ba'},body:JSON.stringify({sessionId:'08e7ba',runId:'baseline',hypothesisId:'H1',location:'src/workers.ts:26',message:'Workers module initialized',data:{redisUrlConfigured:!!config.redis.url,redisHost:config.redis.host,redisPort:config.redis.port},timestamp:Date.now()})}).catch(()=>{});
+// #endregion
 
 // ═══════════════════════════════════════
 // IMPORT WORKER — fetches Spotify tracks, caches metadata, creates playlist
@@ -179,6 +182,9 @@ function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 // Log worker events
 for (const w of [importWorker, matchWorker, youtubeWorker]) {
+  // #region agent log
+  fetch('http://127.0.0.1:7885/ingest/5d3b2723-a535-4ccc-ab6a-c8f61aeb268b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'08e7ba'},body:JSON.stringify({sessionId:'08e7ba',runId:'baseline',hypothesisId:'H1',location:'src/workers.ts:182',message:'Worker event hooks attached',data:{workerName:w.name},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   w.on('failed', (job, err) => console.error(`[Worker:${w.name}] Job ${job?.id} failed:`, err.message));
   w.on('completed', (job) => console.log(`[Worker:${w.name}] Job ${job.id} done`));
 }

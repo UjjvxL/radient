@@ -11,6 +11,8 @@
     "postinstall": "cd jiosaavn-api-local && npm install"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "@google/generative-ai": "^0.24.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
@@ -21,6 +23,7 @@
     "dotenv": "^17.4.2",
     "express": "^4.21.0",
     "ioredis": "^5.10.1",
+    "multer": "^2.1.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "youtube-sr": "^4.3.12"
@@ -32,5 +35,8 @@
     "radient"
   ],
   "author": "Ujjval",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/multer": "^2.1.0"
+  }
 }

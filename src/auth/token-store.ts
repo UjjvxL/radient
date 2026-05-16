@@ -10,6 +10,9 @@ const ALGORITHM = 'aes-256-gcm';
 function getKey(): Buffer {
   const key = config.encryption.key;
   if (!key || key.length !== 64) {
+    // #region agent log
+    fetch('http://127.0.0.1:7885/ingest/5d3b2723-a535-4ccc-ab6a-c8f61aeb268b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'08e7ba'},body:JSON.stringify({sessionId:'08e7ba',runId:'baseline',hypothesisId:'H4',location:'src/auth/token-store.ts:13',message:'Invalid encryption key format',data:{hasKey:!!key,keyLength:key?.length||0},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     throw new Error('TOKEN_ENCRYPTION_KEY must be a 64-char hex string (32 bytes). Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
   }
   return Buffer.from(key, 'hex');

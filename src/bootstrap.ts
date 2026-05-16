@@ -103,6 +103,9 @@ app.use('/api/spotify', importRouter);
 app.use('/api/import', importRouter);
 app.use('/api/spotify/sync', syncRouter);
 
+import youtubeStreamRouter from './youtube/stream';
+app.use('/api/stream/youtube', youtubeStreamRouter);
+
 // ─── Imported Playlist Tracks API ───
 app.get('/api/imported-playlists/:playlistId/tracks', (req, res) => {
   try {
@@ -123,6 +126,7 @@ app.get('/api/imported-playlists/:playlistId/tracks', (req, res) => {
         image: t.album_art ? [{ url: t.album_art }] : [],
         duration: t.duration || 0,
         downloadUrl: t.download_url ? [{ quality: '320kbps', url: t.download_url }] : [],
+        youtube_video_id: t.youtube_video_id
       };
     });
     

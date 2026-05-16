@@ -246,15 +246,14 @@ window.SpotifyImport = {
         <span class="material-symbols-rounded" style="font-size: 48px; color: var(--primary); display: block; margin-bottom: 10px;">photo_camera</span>
         <h4 style="margin-bottom: 8px;">Import from Screenshot</h4>
         <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
-          Paste the list of songs from your playlist screenshot below.<br>
-          Format: <strong>Song Name - Artist</strong> (one per line)
+          Upload a clear screenshot of your playlist showing the song names and artists.<br>
+          Our AI will automatically extract the songs and build a playlist for you!
         </p>
 
-        <textarea id="screenshot-text-input"
-                  placeholder="Blinding Lights - The Weeknd&#10;Believer - Imagine Dragons&#10;Shape of You - Ed Sheeran&#10;Levitating - Dua Lipa&#10;..."
-                  style="width: 100%; height: 180px; background: var(--surface-light); color: var(--text-primary);
-                         border: 1px solid var(--border-medium); border-radius: 8px; padding: 12px;
-                         font-size: 13px; font-family: 'Inter', sans-serif; resize: vertical; line-height: 1.6;"></textarea>
+        <input type="file" id="screenshot-file-input" accept="image/*"
+               style="width: 100%; margin-bottom: 10px; padding: 12px; background: var(--surface-light);
+                      color: var(--text-primary); border: 1px dashed var(--border-medium); border-radius: 8px;
+                      font-size: 13px; font-family: 'Inter', sans-serif;">
 
         <input type="text" id="screenshot-playlist-name" placeholder="Playlist name (optional)"
                style="width: 100%; margin-top: 10px; padding: 10px 12px; background: var(--surface-light);
@@ -263,62 +262,34 @@ window.SpotifyImport = {
 
         <button class="modal-btn primary" id="btn-screenshot-import" onclick="SpotifyImport.startScreenshotImport()"
                 style="width: 100%; margin-top: 15px; padding: 14px; font-size: 15px; font-weight: bold;">
-          🎵 Import Songs
+          🎵 Import from Image
         </button>
       </div>
     `;
   },
 
   async startScreenshotImport() {
-    const textInput = document.getElementById('screenshot-text-input');
+    const fileInput = document.getElementById('screenshot-file-input');
     const nameInput = document.getElementById('screenshot-playlist-name');
     const btn = document.getElementById('btn-screenshot-import');
 
-    if (!textInput) return;
-
-    const rawText = textInput.value.trim();
-    if (!rawText) {
-      UI.showToast('Please enter at least one song', 'error');
-      return;
-    }
-
-    // Parse the text input: each line is "Song Title - Artist" or "Song Title by Artist"
-    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    const tracks = lines.map(line => {
-      // Try "Title - Artist" format first
-      let parts = line.split(/\s*[-–—]\s*/);
-      if (parts.length >= 2) {
-        return {
-          title: parts[0].replace(/^\d+[\.\)]\s*/, '').trim(),
-          artists: [parts.slice(1).join(' - ').trim()]
-        };
-      }
-      // Try "Title by Artist"
-      parts = line.split(/\s+by\s+/i);
-      if (parts.length >= 2) {
-        return {
-          title: parts[0].replace(/^\d+[\.\)]\s*/, '').trim(),
-          artists: [parts.slice(1).join(' by ').trim()]
-        };
-      }
-      // Just treat the whole line as a title
-      return { title: line.replace(/^\d+[\.\)]\s*/, '').trim(), artists: [] };
-    }).filter(t => t.title.length > 0);
-
-    if (tracks.length === 0) {
-      UI.showToast('Could not parse any songs from the input', 'error');
+    if (!fileInput || !fileInput.files[0]) {
+      UI.showToast('Please select an image file', 'error');
       return;
     }
 
     const playlistName = nameInput?.value?.trim() || 'Imported Playlist';
 
-    if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Analyzing image...'; }
 
     try {
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+      formData.append('playlistName', playlistName);
+
       const res = await fetch('/api/import/screenshot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tracks, playlistName })
+        body: formData
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Import failed');
@@ -333,7 +304,7 @@ window.SpotifyImport = {
     } catch (err) {
       console.error(err);
       UI.showToast(err.message || 'Failed to import', 'error');
-      if (btn) { btn.disabled = false; btn.textContent = '🎵 Import Songs'; }
+      if (btn) { btn.disabled = false; btn.textContent = '🎵 Import from Image'; }
     }
   },
 
