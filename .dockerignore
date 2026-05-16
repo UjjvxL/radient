@@ -1,10 +1,7 @@
-.git
-.github
 node_modules
 jiosaavn-api-local/node_modules
-data/
-dist/
+data
 .env
-.DS_Store
-*.md
-*.bat
+.git
+.github
+*.log
