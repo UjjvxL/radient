@@ -9,7 +9,7 @@ WORKDIR /app
 # Install dependencies for both root and jiosaavn-api-local
 COPY package.json package-lock.json ./
 COPY jiosaavn-api-local/package.json jiosaavn-api-local/package-lock.json ./jiosaavn-api-local/
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
 # Copy application source
 COPY src/ ./src/
@@ -18,7 +18,7 @@ COPY jiosaavn-api-local/ ./jiosaavn-api-local/
 COPY tsconfig.json ./
 
 # Install jiosaavn-api-local dev dependencies for build
-RUN cd jiosaavn-api-local && npm ci
+RUN cd jiosaavn-api-local && npm ci --ignore-scripts
 
 EXPOSE 3000
 
