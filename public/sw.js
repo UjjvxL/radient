@@ -3,7 +3,7 @@
  * Network-first for API, Cache-first for assets, Offline fallback
  */
 
-const CACHE_NAME = 'radient-v2';
+const CACHE_NAME = 'radient-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
