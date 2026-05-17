@@ -433,7 +433,7 @@ router.post('/bridge', (req: Request, res: Response) => {
           t.album || 'Local Bridge Match',
           t.albumArt || `https://i.ytimg.com/vi/${t.youtubeVideoId}/hqdefault.jpg`,
           t.duration || 0,
-          '', // No direct DL URL
+          t.downloadUrl || '',
           t.youtubeVideoId || ''
         );
       });
