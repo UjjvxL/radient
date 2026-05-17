@@ -33,12 +33,16 @@ window.SpotifyImport = {
         <!-- Tab Selector -->
         <div style="display: flex; gap: 8px; margin-bottom: 20px;">
           <button id="tab-spotify" class="modal-btn primary" onclick="SpotifyImport.switchTab('spotify')"
-                  style="flex:1; background: #1DB954; color: black; font-weight: bold; padding: 12px;">
+                  style="flex:1; background: #1DB954; color: black; font-weight: bold; padding: 12px; font-size: 13px;">
             🎵 From Spotify
           </button>
           <button id="tab-screenshot" class="modal-btn cancel" onclick="SpotifyImport.switchTab('screenshot')"
-                  style="flex:1; padding: 12px;">
+                  style="flex:1; padding: 12px; font-size: 13px;">
             📸 From Screenshot
+          </button>
+          <button id="tab-text" class="modal-btn cancel" onclick="SpotifyImport.switchTab('text')"
+                  style="flex:1; padding: 12px; font-size: 13px;">
+            📝 From Text
           </button>
         </div>
 
@@ -59,15 +63,22 @@ window.SpotifyImport = {
   switchTab(tab) {
     const spotifyTab = document.getElementById('tab-spotify');
     const screenshotTab = document.getElementById('tab-screenshot');
+    const textTab = document.getElementById('tab-text');
+
+    // Reset all tabs to default state
+    if (spotifyTab) { spotifyTab.className = 'modal-btn cancel'; spotifyTab.style.background = ''; spotifyTab.style.color = ''; }
+    if (screenshotTab) { screenshotTab.className = 'modal-btn cancel'; screenshotTab.style.background = ''; screenshotTab.style.color = ''; }
+    if (textTab) { textTab.className = 'modal-btn cancel'; textTab.style.background = ''; textTab.style.color = ''; }
 
     if (tab === 'spotify') {
       if (spotifyTab) { spotifyTab.className = 'modal-btn primary'; spotifyTab.style.background = '#1DB954'; spotifyTab.style.color = 'black'; }
-      if (screenshotTab) { screenshotTab.className = 'modal-btn cancel'; screenshotTab.style.background = ''; screenshotTab.style.color = ''; }
       this.loadSpotifyTab();
-    } else {
-      if (spotifyTab) { spotifyTab.className = 'modal-btn cancel'; spotifyTab.style.background = ''; spotifyTab.style.color = ''; }
+    } else if (tab === 'screenshot') {
       if (screenshotTab) { screenshotTab.className = 'modal-btn primary'; screenshotTab.style.background = 'var(--primary)'; screenshotTab.style.color = 'white'; }
       this.loadScreenshotTab();
+    } else if (tab === 'text') {
+      if (textTab) { textTab.className = 'modal-btn primary'; textTab.style.background = 'var(--primary)'; textTab.style.color = 'white'; }
+      this.loadTextTab();
     }
   },
 
@@ -305,6 +316,112 @@ window.SpotifyImport = {
       console.error(err);
       UI.showToast(err.message || 'Failed to import', 'error');
       if (btn) { btn.disabled = false; btn.textContent = '🎵 Import from Image'; }
+    }
+  },
+
+  // ══════════════════════════════════════
+  // TEXT TAB
+  // ══════════════════════════════════════
+
+  loadTextTab() {
+    const container = document.getElementById('import-tab-content');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div style="text-align: left; padding: 10px;">
+        <h4 style="margin-bottom: 8px;">Import from Text</h4>
+        <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 15px;">
+          Paste a list of songs (one per line). Format: <b>Song Name - Artist</b>
+        </p>
+
+        <textarea id="text-import-input" placeholder="Example:\nBlinding Lights - The Weeknd\nShape of You - Ed Sheeran"
+               style="width: 100%; height: 120px; margin-bottom: 10px; padding: 12px; background: var(--surface-light);
+                      color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: 8px;
+                      font-size: 13px; font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
+
+        <input type="text" id="text-playlist-name" placeholder="Playlist name (optional)"
+               style="width: 100%; margin-top: 10px; padding: 10px 12px; background: var(--surface-light);
+                      color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: 8px;
+                      font-size: 13px; font-family: 'Inter', sans-serif;">
+
+        <button class="modal-btn primary" id="btn-text-import" onclick="SpotifyImport.startTextImport()"
+                style="width: 100%; margin-top: 15px; padding: 14px; font-size: 15px; font-weight: bold;">
+          📝 Import from Text
+        </button>
+      </div>
+    `;
+  },
+
+  async startTextImport() {
+    const textInput = document.getElementById('text-import-input');
+    const nameInput = document.getElementById('text-playlist-name');
+    const btn = document.getElementById('btn-text-import');
+
+    const rawText = textInput?.value?.trim();
+    if (!rawText) {
+      UI.showToast('Please enter some text', 'error');
+      return;
+    }
+
+    const playlistName = nameInput?.value?.trim() || 'Imported Playlist';
+
+    // Parse the text into an array of { title, artists: [] }
+    const tracks = [];
+    const lines = rawText.split('\\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      
+      // Simple parsing: split by '-' or 'by'
+      let title = trimmed;
+      let artist = 'Unknown Artist';
+      
+      if (trimmed.includes(' - ')) {
+        const parts = trimmed.split(' - ');
+        title = parts[0].trim();
+        artist = parts[1].trim();
+      } else if (trimmed.toLowerCase().includes(' by ')) {
+        const parts = trimmed.split(/ by /i);
+        title = parts[0].trim();
+        artist = parts[1].trim();
+      }
+
+      // Remove numbers if it's a numbered list (e.g. "1. Song - Artist")
+      title = title.replace(/^\\d+\\.\\s*/, '').trim();
+      
+      tracks.push({ title, artists: [artist] });
+    }
+
+    if (tracks.length === 0) {
+      UI.showToast('No valid songs found in text', 'error');
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Processing text...'; }
+
+    try {
+      const res = await fetch('/api/import/screenshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playlistName: playlistName,
+          tracks: tracks
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Import failed');
+
+      // Show progress
+      if (data.jobId) {
+        this.showProgressUI(data.jobId);
+      } else {
+        UI.showToast('Import started!', 'success');
+        UI.hideModal();
+      }
+    } catch (err) {
+      console.error(err);
+      UI.showToast(err.message || 'Failed to import', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '📝 Import from Text'; }
     }
   },
 
