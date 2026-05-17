@@ -183,12 +183,7 @@ const Player = {
   getBestStreamUrl(track) {
     if (!track) return null;
 
-    // Check if we have a YouTube Video ID attached
-    if (track.youtube_video_id) {
-      return `/api/stream/youtube/${track.youtube_video_id}`;
-    }
-
-    // downloadUrl is usually an array of { quality, url }
+    // Priority 1: JioSaavn direct download URLs (most reliable, 320kbps MP4)
     const urls = track.downloadUrl || track.download_url || [];
 
     if (Array.isArray(urls) && urls.length > 0) {
@@ -204,6 +199,11 @@ const Player = {
 
     // Maybe it's a direct URL string
     if (typeof urls === 'string') return urls;
+
+    // Priority 2: YouTube proxy fallback (for tracks missing JioSaavn audio)
+    if (track.youtube_video_id) {
+      return `/api/stream/youtube/${track.youtube_video_id}`;
+    }
 
     return null;
   },
