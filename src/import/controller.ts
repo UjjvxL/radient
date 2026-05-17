@@ -105,25 +105,41 @@ router.post('/screenshot', upload.single('image'), async (req: Request, res: Res
 
       const prompt = `
         This is a screenshot of a music playlist. Extract the songs from it.
-        Return ONLY a raw JSON array of objects, with no markdown formatting or extra text.
+        Return ONLY a raw JSON array of objects. Do NOT use markdown code blocks.
         Each object should have "title" (string) and "artists" (array of strings).
         Example:
         [
-          {"title": "Blinding Lights", "artists": ["The Weeknd"]},
-          {"title": "Shape of You", "artists": ["Ed Sheeran"]}
+          {"title": "Blinding Lights", "artists": ["The Weeknd"]}
         ]
       `;
 
-      const result = await model.generateContent([prompt, imagePart]);
-      const responseText = result.response.text();
-      
-      try {
-        // Clean up markdown code blocks if the model ignored the instructions
-        let cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-        tracks = JSON.parse(cleanJson);
-      } catch (err) {
-        console.error('Failed to parse Gemini response:', responseText);
-        return res.status(500).json({ error: 'Failed to extract songs from the image.' });
+      let parseSuccess = false;
+      let lastError = '';
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const result = await model.generateContent([prompt, imagePart]);
+          const responseText = result.response.text();
+          
+          // Robust JSON parsing: find first [ and last ]
+          let cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const startIndex = cleanJson.indexOf('[');
+          const endIndex = cleanJson.lastIndexOf(']');
+          if (startIndex !== -1 && endIndex !== -1) {
+            cleanJson = cleanJson.substring(startIndex, endIndex + 1);
+          }
+          
+          tracks = JSON.parse(cleanJson);
+          parseSuccess = true;
+          break; // Success
+        } catch (err: any) {
+          lastError = err.message;
+          console.warn(`[Screenshot Import] Attempt ${attempt} failed to parse JSON: ${err.message}`);
+          await sleep(1000);
+        }
+      }
+
+      if (!parseSuccess) {
+        return res.status(500).json({ error: 'Failed to extract songs from the image. ' + lastError });
       }
 
     } else if (req.body.tracks) {
@@ -329,7 +345,39 @@ async function matchTracksInBackground(
         );
         matched++;
       } else {
-        failed++;
+        // ---- NEW: Complete YouTube Fallback if JioSaavn failed ----
+        console.log(`[Import] JioSaavn failed for "${t.title}". Falling back to YouTube...`);
+        let ytMatch = null;
+        try {
+          ytMatch = await matchOnYouTube(t.title, t.artists, (t.durationMs || 0));
+        } catch (ytErr) {
+          console.error('[YouTube Fallback Error]', ytErr);
+        }
+
+        if (ytMatch && ytMatch.confidence > 0.40) {
+          // It's a YouTube-only match! We'll give it a mock jiosaavn_id so the DB doesn't complain
+          // But it will strictly play via YouTube.
+          const mockId = 'yt_' + ytMatch.videoId;
+          const storeStmt = db.prepare(
+            `INSERT OR IGNORE INTO imported_playlist_tracks
+             (playlist_id, position, jiosaavn_id, title, artists, album, album_art, duration, download_url, youtube_video_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          );
+          storeStmt.run(
+            playlistId, i, mockId,
+            ytMatch.title,
+            JSON.stringify(t.artists.map((a: string) => ({ name: a }))),
+            t.album || 'YouTube Match',
+            t.albumArt || `https://i.ytimg.com/vi/${ytMatch.videoId}/hqdefault.jpg`,
+            Math.round((t.durationMs || 0) / 1000),
+            '', // No direct download URL for YT
+            ytMatch.videoId
+          );
+          matched++;
+          console.log(`[Import] ✓ Matched "${t.title}" via YouTube Fallback`);
+        } else {
+          failed++;
+        }
       }
 
       // Update progress
@@ -354,5 +402,50 @@ async function matchTracksInBackground(
 }
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── POST /api/import/bridge — Accept pre-matched tracks from Local Bridge ───
+router.post('/bridge', (req: Request, res: Response) => {
+  try {
+    const { playlistName, tracks } = req.body;
+    if (!tracks || !Array.isArray(tracks)) {
+      return res.status(400).json({ error: 'Invalid tracks array' });
+    }
+
+    const playlistId = 'pl_' + crypto.randomBytes(8).toString('hex');
+    db.prepare(`INSERT INTO playlists_v2 (id, user_id, name, description, spotify_playlist_id, track_count)
+      VALUES (?, ?, ?, ?, ?, ?)`).run(
+      playlistId, 'usr_default', playlistName || 'Local Bridge Import', '', null, tracks.length
+    );
+
+    const storeStmt = db.prepare(
+      `INSERT OR IGNORE INTO imported_playlist_tracks
+       (playlist_id, position, jiosaavn_id, title, artists, album, album_art, duration, download_url, youtube_video_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+
+    const insertMany = db.transaction((tracksList: any[]) => {
+      tracksList.forEach((t, i) => {
+        storeStmt.run(
+          playlistId, i,
+          t.jiosaavnId || ('yt_' + t.youtubeVideoId), // Fallback mock ID
+          t.title,
+          JSON.stringify(t.artists.map((a: string) => ({ name: a }))),
+          t.album || 'Local Bridge Match',
+          t.albumArt || `https://i.ytimg.com/vi/${t.youtubeVideoId}/hqdefault.jpg`,
+          t.duration || 0,
+          '', // No direct DL URL
+          t.youtubeVideoId || ''
+        );
+      });
+    });
+
+    insertMany(tracks);
+
+    res.json({ success: true, playlistId, totalTracks: tracks.length });
+  } catch (err: any) {
+    console.error('[Bridge Import Error]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
