@@ -125,8 +125,8 @@ app.get('/api/imported-playlists/:playlistId/tracks', (req, res) => {
         album: { name: t.album || '' },
         image: t.album_art ? [{ url: t.album_art }] : [],
         duration: t.duration || 0,
-        downloadUrl: t.download_url ? [{ quality: '320kbps', url: t.download_url }] : [],
-        youtube_video_id: t.youtube_video_id
+        downloadUrl: (t.download_url && t.download_url.trim()) ? [{ quality: '320kbps', url: t.download_url }] : [],
+        youtube_video_id: t.youtube_video_id || ''
       };
     });
     
