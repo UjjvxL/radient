@@ -6,6 +6,9 @@ FROM node:20
 
 WORKDIR /app
 
+# Install build dependencies for better-sqlite3
+RUN apt-get update && apt-get install -y python3 make g++
+
 # Install root dependencies (including better-sqlite3 native build)
 COPY package.json package-lock.json ./
 RUN npm ci
