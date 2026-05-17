@@ -367,17 +367,19 @@ window.SpotifyImport = {
 
     // Parse the text into an array of { title, artists: [] }
     const tracks = [];
-    const lines = rawText.split('\\n');
+    const lines = rawText.split('\n');
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
       
-      // Simple parsing: split by '-' or 'by'
       let title = trimmed;
       let artist = 'Unknown Artist';
       
-      if (trimmed.includes(' - ')) {
-        const parts = trimmed.split(' - ');
+      // Match hyphen (-), en-dash (–), or em-dash (—)
+      const dashRegex = /\s*[-–—]\s*/;
+      
+      if (dashRegex.test(trimmed)) {
+        const parts = trimmed.split(dashRegex);
         title = parts[0].trim();
         artist = parts[1].trim();
       } else if (trimmed.toLowerCase().includes(' by ')) {
@@ -387,7 +389,7 @@ window.SpotifyImport = {
       }
 
       // Remove numbers if it's a numbered list (e.g. "1. Song - Artist")
-      title = title.replace(/^\\d+\\.\\s*/, '').trim();
+      title = title.replace(/^\d+\.\s*/, '').trim();
       
       tracks.push({ title, artists: [artist] });
     }
