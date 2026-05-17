@@ -190,3 +190,41 @@ app.listen(config.port, () => {
   });
 
 });
+
+// ─── Background Audio Fixer ───
+// This runs once on startup to fix any tracks missing download URLs
+setTimeout(async () => {
+  try {
+    const emptyTracks = db.prepare("SELECT * FROM imported_playlist_tracks WHERE download_url = '' OR download_url IS NULL").all() as any[];
+    if (emptyTracks.length > 0) {
+      console.log(`[Fixer] Found ${emptyTracks.length} tracks without JioSaavn URLs. Attempting to fix...`);
+      const updateStmt = db.prepare("UPDATE imported_playlist_tracks SET download_url = ? WHERE playlist_id = ? AND jiosaavn_id = ?");
+      
+      for (const track of emptyTracks) {
+        try {
+          const artists = JSON.parse(track.artists).map((a: any) => a.name).join(' ');
+          const query = `${track.title} ${artists}`;
+          const res = await fetchJSON(`${JIOSAAVN_API}/api/search/songs?query=${encodeURIComponent(query)}&limit=3`);
+          
+          if (res.data && res.data.results && res.data.results.length > 0) {
+            const bestResult = res.data.results[0];
+            const dlUrls = bestResult.downloadUrl;
+            if (Array.isArray(dlUrls) && dlUrls.length > 0) {
+              const bestUrl = dlUrls.find((u: any) => u.quality === '320kbps') || dlUrls[dlUrls.length - 1];
+              if (bestUrl && bestUrl.url) {
+                updateStmt.run(bestUrl.url, track.playlist_id, track.jiosaavn_id);
+                console.log(`[Fixer] ✅ Fixed audio for: ${track.title}`);
+              }
+            }
+          }
+        } catch (err: any) {
+          console.error(`[Fixer] Failed to fix ${track.title}:`, err.message);
+        }
+        await new Promise(r => setTimeout(r, 1500)); // Rate limit protection
+      }
+      console.log('[Fixer] Finished processing all missing tracks!');
+    }
+  } catch (e: any) {
+    console.error('[Fixer] Error:', e.message);
+  }
+}, 10000); // Wait 10s for JioSaavn API to spin up
