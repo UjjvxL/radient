@@ -1,64 +1,47 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
+// @ts-ignore
+import ytdl from '@distube/ytdl-core';
 
 const router = Router();
 
-// List of public Invidious instances (fallbacks)
-const INVIDIOUS_INSTANCES = [
-  'https://inv.nadeko.net',
-  'https://invidious.nerdvpn.de',
-  'https://invidious.jing.rocks',
-  'https://iv.datura.network',
-];
-
-async function getAudioUrl(videoId: string): Promise<string | null> {
-  for (const instance of INVIDIOUS_INSTANCES) {
-    try {
-      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, {
-        headers: { 'User-Agent': 'Radient/2.0' },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!res.ok) continue;
-
-      const data = await res.json();
-      const formats = data.adaptiveFormats || [];
-
-      // Find the best audio-only format
-      const audioFormats = formats
-        .filter((f: any) => f.type?.startsWith('audio/'))
-        .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
-
-      if (audioFormats.length > 0) {
-        return audioFormats[0].url;
-      }
-    } catch (err: any) {
-      console.warn(`[YouTube] Invidious instance ${instance} failed:`, err.message);
-    }
-  }
-  return null;
-}
-
-// Redirect to the direct audio URL (simpler, less bandwidth on our server)
-router.get('/:videoId', async (req, res) => {
+router.get('/:videoId', async (req: Request, res: Response) => {
   const { videoId } = req.params;
 
   if (!videoId || videoId.length < 5) {
     return res.status(400).send('Missing or invalid video ID');
   }
 
-  try {
-    const audioUrl = await getAudioUrl(videoId);
+  const url = `https://www.youtube.com/watch?v=${videoId}`;
 
-    if (!audioUrl) {
+  try {
+    // Get video info and find the best audio-only format
+    const info = await ytdl.getInfo(url, {
+      requestOptions: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        }
+      }
+    });
+
+    const formats = ytdl.filterFormats(info.formats, 'audioonly');
+    if (!formats || formats.length === 0) {
       return res.status(404).json({ error: 'No audio stream found for this video' });
     }
 
-    // Redirect the client directly to the audio URL
-    res.redirect(audioUrl);
+    // Pick highest quality audio
+    const best = formats.sort((a: any, b: any) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
+    
+    // Redirect directly to the CDN URL — zero server bandwidth used
+    if (best.url) {
+      return res.redirect(best.url);
+    }
+
+    return res.status(404).json({ error: 'No audio URL found' });
 
   } catch (error: any) {
     console.error('[YouTube Stream Error]', error.message);
     if (!res.headersSent) {
-      res.status(500).send('Failed to get audio stream');
+      res.status(500).send('Failed to get audio stream: ' + error.message);
     }
   }
 });
